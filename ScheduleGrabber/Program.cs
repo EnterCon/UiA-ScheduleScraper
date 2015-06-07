@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
-using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Diagnostics;
@@ -23,10 +22,11 @@ namespace ScheduleGrabber
     /// </summary>
     public static class Program
     {
-        static IMongoClient _client;
-        static IMongoDatabase _database;
+        static IMongoClient DbClient;
+        static IMongoDatabase Db;
         static HttpClient client = new HttpClient();
         static Stopwatch timer = new Stopwatch();
+        static List<BsonDocument> batch = new List<BsonDocument>();
 
         /// <summary>
         /// Run the program
@@ -40,12 +40,11 @@ namespace ScheduleGrabber
                 Console.ForegroundColor = ConsoleColor.White;
                 Console.WriteLine("ScheduleGrabber starting...");
                 string url = "http://timeplan.uia.no/swsuiav/public/no/default.aspx";
-                _client = new MongoClient();
-                _database = _client.GetDatabase("uia-schedule");
+                DbClient = new MongoClient();
+                Db = DbClient.GetDatabase("uia-schedule");
                 Console.WriteLine("Connected to database");
 
                 HtmlDocument doc = new HtmlDocument();
-                throw new Exception("Hello");
                 var resp = client.GetAsync(url).Result;
                 var respStr = resp.Content.ReadAsStringAsync().Result;
                 doc = respStr.ToHtml();
@@ -72,7 +71,7 @@ namespace ScheduleGrabber
                 Console.Write("\rInserted data for " + amount + " of " + departments.Count + " departments in " +
                     string.Format("{0:0.0}", timer.Elapsed.TotalSeconds) + " seconds (" +
                     string.Format("{0:0.00}", amount / timer.Elapsed.TotalSeconds) + " departments/second)");
-                Parallel.ForEach(departments, department =>
+                foreach(string department in departments)
                 {
                     var requestData = new Dictionary<string, string>
                     {
@@ -93,13 +92,12 @@ namespace ScheduleGrabber
 
                     BsonDocument document = GetScheduleData(requestData, department);
 
-                    var collection = _database.GetCollection<BsonDocument>("courses");
-                    collection.InsertOneAsync(document);
+                    batch.Add(document);
                     amount++;
-                    Console.Write("\rInserted data for " + amount + " of " + departments.Count + " departments in " +
+                    Console.Write("\rGot data for " + amount + " of " + departments.Count + " departments in " +
                         string.Format("{0:0.0}", timer.Elapsed.TotalSeconds) + " seconds (" +
                         string.Format("{0:0.00}", amount / timer.Elapsed.TotalSeconds) + " departments/second)");
-                });
+                }
                 timer.Stop();
             }
             catch (Exception ex)
@@ -109,6 +107,16 @@ namespace ScheduleGrabber
                 Console.WriteLine("EXCEPTION OCCURRED: \n " + ex.Message + " \n at: " + ex.LineNumber());
                 Console.BackgroundColor = ConsoleColor.Green;
             }
+            Console.WriteLine("");
+            Console.WriteLine("Got all data, inserting...");
+            var collection = Db.GetCollection<BsonDocument>("departments");
+            if (collection == null)
+            {
+                Db.CreateCollectionAsync("departments").Wait();
+                collection = Db.GetCollection<BsonDocument>("departments");
+            }
+            collection.InsertManyAsync(batch).Wait();
+            Console.WriteLine("Finished inserting");
             Console.WriteLine("");
             Console.WriteLine("ScheduleGrabber finished grabbing in " + string.Format("{0:0.0}", timer.Elapsed.TotalSeconds));
             Console.ReadLine();

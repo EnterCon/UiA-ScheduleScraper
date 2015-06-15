@@ -5,8 +5,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
-using MongoDB.Bson;
-using MongoDB.Driver;
 using System.Diagnostics;
 
 namespace ScheduleGrabber
@@ -20,13 +18,14 @@ namespace ScheduleGrabber
     /// The resulting data is stored in a database, to be
     /// made available through an API.
     /// </summary>
-    public static class Program
+    public static class Grabber
     {
-        static IMongoClient DbClient;
-        static IMongoDatabase Db;
-        static HttpClient client = new HttpClient();
+        public static HttpClient Client = new HttpClient();
+        public static string URL = "http://timeplan.uia.no/swsuiav/public/no/default.aspx";
+        public static PostData RequestData { get; set; }
+        public static HtmlDocument SchedulePage { get; set }
+
         static Stopwatch timer = new Stopwatch();
-        static List<BsonDocument> batch = new List<BsonDocument>();
 
         /// <summary>
         /// Run the program
@@ -36,42 +35,17 @@ namespace ScheduleGrabber
         {
             try
             {
-                Console.BackgroundColor = ConsoleColor.Green;
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine("ScheduleGrabber starting...");
-                string url = "http://timeplan.uia.no/swsuiav/public/no/default.aspx";
-                DbClient = new MongoClient();
-                Db = DbClient.GetDatabase("uia-schedule");
-                Console.WriteLine("Connected to database");
-
-                HtmlDocument doc = new HtmlDocument();
-                var resp = client.GetAsync(url).Result;
-                var respStr = resp.Content.ReadAsStringAsync().Result;
-                doc = respStr.ToHtml();
-                string __VIEWSTATE = doc.DocumentNode.Descendants().Where(d => d.Id == "__VIEWSTATE").First().GetAttributeValue("value", null);
-                string __VIEWSTATEGENERATOR = doc.DocumentNode.Descendants().Where(d => d.Id == "__VIEWSTATEGENERATOR").First().GetAttributeValue("value", null);
-                string __EVENTVALIDATION = doc.DocumentNode.Descendants().Where(d => d.Id == "__EVENTVALIDATION").First().GetAttributeValue("value", null);
-                string tLinkType = "studentsets";
-                string tWildCard = "";
-                string lbWeeks = doc.DocumentNode.Descendants().Where(d => d.Id == "lbWeeks").First().Descendants("option").ElementAt(1).GetAttributeValue("value", null);
-                string lbDays = "1-6";
-                string RadioType = "XMLSpreadsheet;studentsetxmlurl;SWSCUST StudentSet XMLSpreadsheet";
-                string bGetTimetable = "Vis+timeplan";
-                Console.WriteLine("Got form data");
-
-                HtmlNode selectBox = doc.DocumentNode.Descendants().Where(d => d.Id == "dlObject").First();
-                List<string> departments = new List<string>();
-                foreach (var option in selectBox.Descendants("option"))
-                    departments.Add(option.GetAttributeValue("value", null));
-                Console.WriteLine("Got all ID's");
-                Console.WriteLine("");
+                Utility.StandardConsole();
+                SchedulePage = GetSchedulePage();
+                List<Department> departments = GetDepartments();
+                
 
                 int amount = 0;
                 timer.Start();
                 Console.Write("\rInserted data for " + amount + " of " + departments.Count + " departments in " +
                     string.Format("{0:0.0}", timer.Elapsed.TotalSeconds) + " seconds (" +
                     string.Format("{0:0.00}", amount / timer.Elapsed.TotalSeconds) + " departments/second)");
-                foreach(string department in departments)
+                foreach(Department department in departments)
                 {
                     var requestData = new Dictionary<string, string>
                     {
@@ -102,24 +76,71 @@ namespace ScheduleGrabber
             }
             catch (Exception ex)
             {
-                Console.BackgroundColor = ConsoleColor.Red;
-                Console.WriteLine("");
-                Console.WriteLine("EXCEPTION OCCURRED: \n " + ex.Message + " \n at: " + ex.LineNumber());
-                Console.BackgroundColor = ConsoleColor.Green;
+                Utility.ExceptionConsole(() =>
+                {
+                    Console.WriteLine("");
+                    Console.WriteLine("EXCEPTION OCCURRED: \n " + ex.Message + " \n at: " + ex.LineNumber());
+                });
             }
-            Console.WriteLine("");
-            Console.WriteLine("Got all data, inserting...");
-            var collection = Db.GetCollection<BsonDocument>("departments");
-            if (collection == null)
-            {
-                Db.CreateCollectionAsync("departments").Wait();
-                collection = Db.GetCollection<BsonDocument>("departments");
-            }
-            collection.InsertManyAsync(batch).Wait();
-            Console.WriteLine("Finished inserting");
+
+
+
             Console.WriteLine("");
             Console.WriteLine("ScheduleGrabber finished grabbing in " + string.Format("{0:0.0}", timer.Elapsed.TotalSeconds));
             Console.ReadLine();
+        }
+
+        private static HtmlDocument GetSchedulePage()
+        {
+            HtmlDocument doc = new HtmlDocument();
+            var resp = Client.GetAsync(URL).Result;
+            var respStr = resp.Content.ReadAsStringAsync().Result;
+            doc = respStr.ToHtml();
+            return doc;
+        }
+
+        public static PostData GetRequestData()
+        {
+            if(SchedulePage == null || SchedulePage.ToString().Length >= 0)
+                throw new ArgumentException("SchedulePage document isn't loaded!");
+            string __VIEWSTATE = SchedulePage.DocumentNode.Descendants()
+                .Where(d => d.Id == "__VIEWSTATE").First().GetAttributeValue("value", null);
+            string __VIEWSTATEGENERATOR = SchedulePage.DocumentNode.Descendants()
+                .Where(d => d.Id == "__VIEWSTATEGENERATOR").First().GetAttributeValue("value", null);
+            string __EVENTVALIDATION = SchedulePage.DocumentNode.Descendants()
+                .Where(d => d.Id == "__EVENTVALIDATION").First().GetAttributeValue("value", null);
+            string tLinkType = "studentsets";
+            string tWildCard = "";
+            string lbWeeks = SchedulePage.DocumentNode.Descendants()
+                .Where(d => d.Id == "lbWeeks").First().Descendants("option").ElementAt(1).GetAttributeValue("value", null);
+            string lbDays = "1-6";
+            string RadioType = "XMLSpreadsheet;studentsetxmlurl;SWSCUST StudentSet XMLSpreadsheet";
+            string bGetTimetable = "Vis+timeplan";
+            return new PostData()
+                {
+                    __EVENTARGUMENT = "",
+                    __EVENTTARGET = "",
+                    __LASTFOCUS = "",
+                    __VIEWSTATE = __VIEWSTATE,
+                    __VIEWSTATEGENERATOR = __VIEWSTATEGENERATOR,
+                    __EVENTVALIDATION = __EVENTVALIDATION,
+                    tLinkType = tLinkType,
+                    tWildcard = tWildCard,
+                    lbWeeks = lbWeeks,
+                    lbDays = lbDays,
+                    RadioType = RadioType,
+                    bGetTimetable = bGetTimetable
+                };
+        }
+
+
+        public static List<Department> GetDepartments()
+        {
+            HtmlNode selectBox = doc.DocumentNode.Descendants().Where(d => d.Id == "dlObject").First();
+            List<Department> departments = new List<Department>();
+            foreach (var option in selectBox.Descendants("option"))
+                departments.Add(new Department(option.GetAttributeValue("value", null)));
+            return departments;
         }
 
         /// <summary>
@@ -128,47 +149,9 @@ namespace ScheduleGrabber
         /// <param name="requestData">the data for the POST request</param>
         /// <param name="department">the ID of the department</param>
         /// <returns>a BsonDocument to be stored somewhere</returns>
-        public static BsonDocument GetScheduleData(Dictionary<string, string> requestData, string department)
+        public static Department GetScheduleData(Dictionary<string, string> requestData, string department)
         {
-            var formdata = new FormUrlEncodedContent(requestData);
-            var response = client.PostAsync("http://timeplan.uia.no/swsuiav/public/no/default.aspx", formdata).Result;
-            string html = response.Content.ReadAsStringAsync().Result;
-            HtmlDocument courseDoc = html.ToHtml();
-            var weeks = courseDoc.DocumentNode.Descendants("table");
-            string title = courseDoc.DocumentNode.Descendants().Where(n => n.GetAttributeValue("class", null) == "title").First().InnerText;
-            var document = new BsonDocument
-            {
-                { "id", department },
-                { "name", title.Sanitize() },
-                { "schedule", new BsonDocument
-                    {
-                    }
-                }
-            };
-
-            foreach (var week in weeks)
-            {
-                string theWeek = week.SelectSingleNode("tr[@class='tr1']/td[@class='td1']").InnerText.Sanitize();
-                document["schedule"].AsBsonDocument.Add(theWeek, new BsonArray());
-                var events = week.SelectNodes("tr[@class='tr2']");
-                if (events != null && events.Count > 0)
-                {
-                    foreach (var ev in events)
-                    {
-                        document["schedule"].AsBsonDocument[theWeek].AsBsonArray.Add(new BsonDocument
-                                {
-                                    {"day", ev.ChildNodes[0].InnerText.Sanitize() },
-                                    {"date", ev.ChildNodes[1].InnerText.Sanitize() },
-                                    {"time", ev.ChildNodes[2].InnerText.Sanitize() },
-                                    {"activity", ev.ChildNodes[3].InnerText.Sanitize() },
-                                    {"room", ev.ChildNodes[4].InnerText.Sanitize() },
-                                    {"lecturer", ev.ChildNodes[5].InnerText.Sanitize() },
-                                    {"notice", ev.ChildNodes[6].InnerText.Sanitize() }
-                                });
-                    }
-                }
-            }
-            return document;
+            
         }
 
         /// <summary>

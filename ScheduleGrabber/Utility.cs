@@ -1,7 +1,9 @@
-﻿using System;
+﻿using HtmlAgilityPack;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -10,11 +12,23 @@ namespace ScheduleGrabber
 {
     public static class Utility
     {
+        /// <summary>
+        /// Set console settings to standard for this application
+        /// </summary>
         public static void StandardConsole()
         {
             Console.BackgroundColor = ConsoleColor.Green;
         }
 
+        /// <summary>
+        /// A utility method for writing exceptions
+        /// to the console.
+        /// See main for usage.
+        /// </summary>
+        /// <param name="block">
+        ///     a block of code either in the form
+        ///     of a method, or lambda expression.
+        /// </param>
         public static void ExceptionConsole(Action block)
         {
             Console.BackgroundColor = ConsoleColor.Red;
@@ -22,77 +36,64 @@ namespace ScheduleGrabber
             Utility.StandardConsole();
         }
 
-        public static int GetWeekNumber(string stringContainingWeekNumber)
+        /// <summary>
+        /// Load the string into an HtmlDocument object
+        /// </summary>
+        /// <param name="str">the string</param>
+        /// <returns>an HtmlDocument object</returns>
+        public static HtmlDocument ToHtml(this string str)
         {
-            Regex weekNumberReg = new Regex(@"(?<=Uke.*)\b([0-9]|[1-4][0-9]|5[0-2])\b", RegexOptions.IgnoreCase);
-            Match weekNumberMatch = weekNumberReg.Match(stringContainingWeekNumber);
-            int count = 0; int weekNumber = 0;
-            while(weekNumberMatch.Success)
-            {
-                if (count >= 1)
-                    throw new ArgumentException("GetWeekNumber found more than 1 match");
-
-                weekNumber = int.Parse(weekNumberMatch.Groups[1].Value);
-                count++;
-                weekNumberMatch = weekNumberMatch.NextMatch();
-            }
-            if (weekNumber == 0)
-                throw new ArgumentException("GetWeekNumber found no valid weeknumber for string: '" +
-                    stringContainingWeekNumber + "'");
-            return weekNumber;
+            str = WebUtility.HtmlDecode(str);
+            HtmlDocument doc = new HtmlDocument();
+            doc.LoadHtml(str);
+            return doc;
         }
 
-        public static Tuple<DateTime, DateTime> ParseScheduleTimeColumns(string date, string time)
+        /// <summary>
+        /// Trim whitespaces and remove escape sequences
+        /// </summary>
+        /// <param name="str">the string</param>
+        /// <returns>result of sanitation</returns>
+        public static string Sanitize(this string str)
         {
-            DateTime start;
-            DateTime end;
+            StringBuilder res = new StringBuilder();
+            List<char> escapeSequences = new List<char>
+            {
+                '\r', '\n', '\t', '\\', '\f', '\v', '\a', '\b', '\n', '\'', '\"'
+            };
+            for (int i = 0; i < str.Length; i++)
+            {
+                if (escapeSequences.Contains(str[i]))
+                    continue;
+                if (i == 0 && char.IsWhiteSpace(str[i]))
+                    continue;
+                if (i != 0 && char.IsWhiteSpace(str[i]) && char.IsWhiteSpace(str[i - 1]))
+                    continue;
+                res.Append(str[i]);
+            }
+            return res.ToString().TrimEnd();
+        }
+
+        /// <summary>
+        /// Extension method for getting exception line number.
+        /// Source: http://stackoverflow.com/a/11362875
+        /// </summary>
+        /// <param name="e">the exception</param>
+        /// <returns>the linenumber</returns>
+        public static int LineNumber(this Exception e)
+        {
+            int linenum = 0;
             try
             {
-                start = DateTime.ParseExact(date, "dd-MMM", CultureInfo.InvariantCulture);
-                end = DateTime.ParseExact(date, "dd-MMM", CultureInfo.InvariantCulture);
+                //linenum = Convert.ToInt32(e.StackTrace.Substring(e.StackTrace.LastIndexOf(":line") + 5));
+                //For Localized Visual Studio ... In other languages stack trace  doesn't end with ":Line 12"
+                linenum = Convert.ToInt32(e.StackTrace.Substring(e.StackTrace.LastIndexOf(' ')));
             }
-            catch(Exception ex)
+            catch
             {
-                throw new ArgumentException("ParseScheduleTimeColumns: can't parse date argument: '"
-                    + date + "'", ex);
+                //Stack trace is not available!
             }
-            string[] times = time.Split('-');
-            if (times.Count() != 2)
-                throw new ArgumentException("ParseScheduleTimeColumns: time argument has invalid format: '"
-                    + time + "'");
-            string startStr = times[0];
-            string endStr = times[1];
-
-            try
-            {
-                string[] hoursAndMinutes = startStr.Split('.');
-                int startHours = int.Parse(hoursAndMinutes[0]);
-                int startMinutes = int.Parse(hoursAndMinutes[1]);
-                TimeSpan startTime = new TimeSpan(startHours, startMinutes, 0);
-                start.Add(startTime);
-            }
-            catch(Exception ex)
-            {
-                throw new ArgumentException("ParseScheduleTimeColumns: couldn't parse start of day: '"
-                    + startStr + "'", ex);
-            }
-
-            try
-            {
-                string[] hoursAndMinutes = endStr.Split('.');
-                int endHours = int.Parse(times[1].Split('.')[0]);
-                int endMinutes = int.Parse(times[1].Split('.')[1]);
-                TimeSpan endTime = new TimeSpan(endHours, endMinutes, 0);
-                end.Add(endTime);
-            }
-            catch(Exception ex)
-            {
-                throw new ArgumentException("ParseScheduleTimeColumns: couldn't parse end of day: '"
-                    + endStr + "'", ex);
-            }
-
-            Tuple<DateTime, DateTime> result = new Tuple<DateTime, DateTime>(start, end);
-            return result;
+            return linenum;
         }
     }
 }

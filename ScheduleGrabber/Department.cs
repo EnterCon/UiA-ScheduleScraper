@@ -20,29 +20,38 @@ namespace ScheduleGrabber
             this.Id = id;
         }
 
-
+        /// <summary>
+        /// This method grabs the schedule for the department
+        /// of this object, and stores the schedule
+        /// in it's schedule property: a list of weeks
+        /// which contain days with activities.
+        /// </summary>
+        /// <param name="requestData">
+        ///     the request data from the HttpClient
+        ///     required for posting to the website.
+        /// </param>
         public void GrabSchedule(PostData requestData)
         {
             var response = Grabber.Client.PostAsync(Grabber.URL, requestData.UrlEncode(this)).Result;
-            string html = response.Content.ReadAsStringAsync().Result;
-            HtmlDocument courseDoc = html.ToHtml();
-            var weeks = courseDoc.DocumentNode.Descendants("table");
+            string htmlStr = response.Content.ReadAsStringAsync().Result;
+            HtmlDocument scheduleHtml = htmlStr.ToHtml();
+            var weeks = scheduleHtml.DocumentNode.Descendants("table");
 
-            string title = courseDoc.DocumentNode.Descendants()
+            string title = scheduleHtml.DocumentNode.Descendants()
                 .Where(n => n.GetAttributeValue("class", null) == "title").First().InnerText;
             this.Name = title.Sanitize();
 
             foreach (var week in weeks)
             {
-                string weekString = week.SelectSingleNode("tr[@class='tr1']/td[@class='td1']")
-                    .InnerText.Sanitize();
-
                 var days = week.SelectNodes("tr[@class='tr2']");
                 if (days != null && days.Count > 0)
                 {
                     Week theWeek = new Week();
-                    Day theDay = new Day();
-                    theWeek.Number = Utility.GetWeekNumber(weekString);
+                    List<Day> dayList = new List<Day>();
+                    string weekString = week.SelectSingleNode("tr[@class='tr1']/td[@class='td1']")
+                        .InnerText.Sanitize();
+                    theWeek.Number = Week.GetWeekNumber(weekString);
+                    theWeek.Year = Week.GetYear(weekString);
                     foreach (var dayActivity in days)
                     {
                         Activity activity = new Activity();
@@ -52,16 +61,28 @@ namespace ScheduleGrabber
                         activity.Notice = dayActivity.ChildNodes[6].InnerText.Sanitize();
                         string dateStr = dayActivity.ChildNodes[1].InnerText.Sanitize();
                         string timeStr = dayActivity.ChildNodes[2].InnerText.Sanitize();
-                        Tuple<DateTime, DateTime> startAndEnd = Utility.ParseScheduleTimeColumns(dateStr, timeStr);
+                        Tuple<DateTime, DateTime> startAndEnd = Activity.ParseTimespan(dateStr, timeStr);
                         activity.Start = startAndEnd.Item1;
                         activity.End = startAndEnd.Item2;
-                        theWeek.Days.Add(theDay);
+                        var currentDate = dayList.Where(d => d.Date.Date.Equals(activity.Start.Date));
+                        if (currentDate.Count() == 0)
+                        {
+                            Day aday = new Day();
+                            aday.Activities.Add(activity);
+                            aday.Date = new DateTime(activity.Start.Year, activity.Start.Month, activity.Start.Day);
+                            dayList.Add(aday);
+                        }
+                        else if (currentDate.Count() == 1)
+                        {
+                            currentDate.First().Activities.Add(activity);
+                        }
                     }
 
-                    theWeek.Days.Add(theDay);
+                    theWeek.Days.AddRange(dayList.ToArray());
                     this.Schedule.Add(theWeek);
                 }
             }
         }
+
     }
 }

@@ -7,6 +7,7 @@ namespace ScheduleGrabber
 {
     public class Day
     {
+        private Activity activity;
         public DateTime Date { get; set; }
         public List<Activity> Activities { get; set; }
     }

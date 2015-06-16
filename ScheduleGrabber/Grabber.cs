@@ -23,7 +23,7 @@ namespace ScheduleGrabber
         public static HttpClient Client = new HttpClient();
         public static string URL = "http://timeplan.uia.no/swsuiav/public/no/default.aspx";
         public static PostData RequestData { get; set; }
-        public static HtmlDocument SchedulePage { get; set }
+        public static HtmlDocument SchedulePage { get; set; }
 
         static Stopwatch timer = new Stopwatch();
 
@@ -92,7 +92,8 @@ namespace ScheduleGrabber
             string tLinkType = "studentsets";
             string tWildCard = "";
             string lbWeeks = SchedulePage.DocumentNode.Descendants()
-                .Where(d => d.Id == "lbWeeks").First().Descendants("option").ElementAt(1).GetAttributeValue("value", null);
+                .Where(d => d.Id == "lbWeeks").First()
+                .Descendants("option").ElementAt(1).GetAttributeValue("value", null);
             string lbDays = "1-6";
             string RadioType = "XMLSpreadsheet;studentsetxmlurl;SWSCUST StudentSet XMLSpreadsheet";
             string bGetTimetable = "Vis+timeplan";
@@ -113,7 +114,11 @@ namespace ScheduleGrabber
                 };
         }
 
-
+        /// <summary>
+        /// Place all the departments from the SchedulePage selectbox
+        /// into memory, so that we can grab their schedule.
+        /// </summary>
+        /// <returns>a list of department objects</returns>
         public static List<Department> GetDepartments()
         {
             HtmlNode selectBox = SchedulePage.DocumentNode.Descendants().Where(d => d.Id == "dlObject").First();
@@ -121,77 +126,6 @@ namespace ScheduleGrabber
             foreach (var option in selectBox.Descendants("option"))
                 departments.Add(new Department(option.GetAttributeValue("value", null)));
             return departments;
-        }
-
-        /// <summary>
-        /// Takes request data and a department ID to request it's schedule.
-        /// </summary>
-        /// <param name="requestData">the data for the POST request</param>
-        /// <param name="department">the ID of the department</param>
-        /// <returns>a BsonDocument to be stored somewhere</returns>
-        public static Department GetScheduleData(Dictionary<string, string> requestData, string department)
-        {
-            
-        }
-
-        /// <summary>
-        /// Load the string into an HtmlDocument object
-        /// </summary>
-        /// <param name="str">the string</param>
-        /// <returns>an HtmlDocument object</returns>
-        public static HtmlDocument ToHtml(this string str)
-        {
-            str = WebUtility.HtmlDecode(str);
-            HtmlDocument doc = new HtmlDocument();
-            doc.LoadHtml(str);
-            return doc;
-        }
-
-        /// <summary>
-        /// Trim whitespaces and remove escape sequences
-        /// </summary>
-        /// <param name="str">the string</param>
-        /// <returns>result of sanitation</returns>
-        public static string Sanitize(this string str)
-        {
-            StringBuilder res = new StringBuilder();
-            List<char> escapeSequences = new List<char>
-            {
-                '\r', '\n', '\t', '\\', '\f', '\v', '\a', '\b', '\n', '\'', '\"'
-            };
-            for (int i = 0; i < str.Length; i++)
-            {
-                if (escapeSequences.Contains(str[i]))
-                    continue;
-                if (i == 0 && char.IsWhiteSpace(str[i]))
-                    continue;
-                if (i != 0 && char.IsWhiteSpace(str[i]) && char.IsWhiteSpace(str[i - 1]))
-                    continue;
-                res.Append(str[i]);
-            }
-            return res.ToString().TrimEnd();
-        }
-
-        /// <summary>
-        /// Extension method for getting exception line number.
-        /// Source: http://stackoverflow.com/a/11362875
-        /// </summary>
-        /// <param name="e">the exception</param>
-        /// <returns>the linenumber</returns>
-        public static int LineNumber(this Exception e)
-        {
-            int linenum = 0;
-            try
-            {
-                //linenum = Convert.ToInt32(e.StackTrace.Substring(e.StackTrace.LastIndexOf(":line") + 5));
-                //For Localized Visual Studio ... In other languages stack trace  doesn't end with ":Line 12"
-                linenum = Convert.ToInt32(e.StackTrace.Substring(e.StackTrace.LastIndexOf(' ')));
-            }
-            catch
-            {
-                //Stack trace is not available!
-            }
-            return linenum;
         }
     }
 }

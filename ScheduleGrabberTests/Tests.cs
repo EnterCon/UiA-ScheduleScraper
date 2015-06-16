@@ -14,13 +14,13 @@ namespace ScheduleGrabber.Tests
         public void Test_Get_Week_Number()
         {
             string testcase1 = "Uke 11, 2015";
-            Assert.That(Utility.GetWeekNumber(testcase1), Is.EqualTo(11));
+            Assert.That(Week.GetWeekNumber(testcase1), Is.EqualTo(11));
 
             string testcase2 = "Uke 31, 2015 - Ingen undervisning denne uken";
-            Assert.That(Utility.GetWeekNumber(testcase2), Is.EqualTo(31));
+            Assert.That(Week.GetWeekNumber(testcase2), Is.EqualTo(31));
 
             string testcase3 = "Uke 66, 2015 - Ingen undervisning denne uken";
-            Assert.That(Utility.GetWeekNumber(testcase3), Throws.ArgumentException);
+            Assert.That(Week.GetWeekNumber(testcase3), Throws.ArgumentException);
         }
     }
 }

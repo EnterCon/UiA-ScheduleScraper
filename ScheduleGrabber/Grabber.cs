@@ -28,50 +28,20 @@ namespace ScheduleGrabber
         static Stopwatch timer = new Stopwatch();
 
         /// <summary>
-        /// Run the program
+        /// Run the ScheduleGrabber!
         /// </summary>
-        /// <param name="args"></param>
+        /// <param name="args">CLI arguments</param>
         static void Main(string[] args)
         {
             try
             {
                 Utility.StandardConsole();
                 SchedulePage = GetSchedulePage();
+                RequestData = GetRequestData();
                 List<Department> departments = GetDepartments();
-                
-
-                int amount = 0;
+ 
                 timer.Start();
-                Console.Write("\rInserted data for " + amount + " of " + departments.Count + " departments in " +
-                    string.Format("{0:0.0}", timer.Elapsed.TotalSeconds) + " seconds (" +
-                    string.Format("{0:0.00}", amount / timer.Elapsed.TotalSeconds) + " departments/second)");
-                foreach(Department department in departments)
-                {
-                    var requestData = new Dictionary<string, string>
-                    {
-                    { "__EVENTTARGET", "" },
-                    { "__EVENTARGUMENT", ""},
-                    { "__LASTFOCUS", ""},
-                    { "__VIEWSTATE", __VIEWSTATE },
-                    { "__VIEWSTATEGENERATOR", __VIEWSTATEGENERATOR },
-                    { "__EVENTVALIDATION", __EVENTVALIDATION },
-                    { "tLinkType",  tLinkType},
-                    { "tWildcard", tWildCard},
-                    { "dlObject", department },
-                    { "lbWeeks", lbWeeks},
-                    { "lbDays", lbDays},
-                    { "RadioType", RadioType},
-                    { "bGetTimetable", bGetTimetable}
-                    };
 
-                    BsonDocument document = GetScheduleData(requestData, department);
-
-                    batch.Add(document);
-                    amount++;
-                    Console.Write("\rGot data for " + amount + " of " + departments.Count + " departments in " +
-                        string.Format("{0:0.0}", timer.Elapsed.TotalSeconds) + " seconds (" +
-                        string.Format("{0:0.00}", amount / timer.Elapsed.TotalSeconds) + " departments/second)");
-                }
                 timer.Stop();
             }
             catch (Exception ex)
@@ -79,17 +49,22 @@ namespace ScheduleGrabber
                 Utility.ExceptionConsole(() =>
                 {
                     Console.WriteLine("");
-                    Console.WriteLine("EXCEPTION OCCURRED: \n " + ex.Message + " \n at: " + ex.LineNumber());
+                    Console.WriteLine("EXCEPTION OCCURRED: \n " + ex.Message + 
+                        " \n at: " + ex.LineNumber());
                 });
             }
 
-
-
             Console.WriteLine("");
-            Console.WriteLine("ScheduleGrabber finished grabbing in " + string.Format("{0:0.0}", timer.Elapsed.TotalSeconds));
+            Console.WriteLine("ScheduleGrabber finished grabbing in " + 
+                string.Format("{0:0.0}", timer.Elapsed.TotalSeconds));
             Console.ReadLine();
         }
 
+        /// <summary>
+        /// Request the UiA-Schedule website, parse it,
+        /// and load it into memory as an HmlDocument oject.
+        /// </summary>
+        /// <returns>the HtmlDocument</returns>
         private static HtmlDocument GetSchedulePage()
         {
             HtmlDocument doc = new HtmlDocument();
@@ -99,6 +74,11 @@ namespace ScheduleGrabber
             return doc;
         }
 
+        /// <summary>
+        /// Get the Form request data required to POST
+        /// and retrieve department schedule information
+        /// </summary>
+        /// <returns></returns>
         public static PostData GetRequestData()
         {
             if(SchedulePage == null || SchedulePage.ToString().Length >= 0)
@@ -136,7 +116,7 @@ namespace ScheduleGrabber
 
         public static List<Department> GetDepartments()
         {
-            HtmlNode selectBox = doc.DocumentNode.Descendants().Where(d => d.Id == "dlObject").First();
+            HtmlNode selectBox = SchedulePage.DocumentNode.Descendants().Where(d => d.Id == "dlObject").First();
             List<Department> departments = new List<Department>();
             foreach (var option in selectBox.Descendants("option"))
                 departments.Add(new Department(option.GetAttributeValue("value", null)));

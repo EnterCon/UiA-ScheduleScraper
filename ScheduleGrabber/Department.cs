@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace ScheduleGrabber
 {
@@ -27,38 +28,40 @@ namespace ScheduleGrabber
             HtmlDocument courseDoc = html.ToHtml();
             var weeks = courseDoc.DocumentNode.Descendants("table");
 
-            string title = courseDoc.DocumentNode.Descendants().Where(n => n.GetAttributeValue("class", null) == "title").First().InnerText;
+            string title = courseDoc.DocumentNode.Descendants()
+                .Where(n => n.GetAttributeValue("class", null) == "title").First().InnerText;
             this.Name = title.Sanitize();
 
             foreach (var week in weeks)
             {
-                Week theWeek = new Week();
+                string weekString = week.SelectSingleNode("tr[@class='tr1']/td[@class='td1']")
+                    .InnerText.Sanitize();
 
-                string weekString = week.SelectSingleNode("tr[@class='tr1']/td[@class='td1']").InnerText.Sanitize();
-                int weekNumber = Utility.GetWeekNumber(weekString);
-
-                document["schedule"].AsBsonDocument.Add(theWeek, new BsonArray());
-                var events = week.SelectNodes("tr[@class='tr2']");
-                if (events != null && events.Count > 0)
+                var days = week.SelectNodes("tr[@class='tr2']");
+                if (days != null && days.Count > 0)
                 {
-                    foreach (var ev in events)
+                    Week theWeek = new Week();
+                    Day theDay = new Day();
+                    theWeek.Number = Utility.GetWeekNumber(weekString);
+                    foreach (var dayActivity in days)
                     {
-                        document["schedule"].AsBsonDocument[theWeek].AsBsonArray.Add(new BsonDocument
-                                {
-                                    {"day", ev.ChildNodes[0].InnerText.Sanitize() },
-                                    {"date", ev.ChildNodes[1].InnerText.Sanitize() },
-                                    {"time", ev.ChildNodes[2].InnerText.Sanitize() },
-                                    {"activity", ev.ChildNodes[3].InnerText.Sanitize() },
-                                    {"room", ev.ChildNodes[4].InnerText.Sanitize() },
-                                    {"lecturer", ev.ChildNodes[5].InnerText.Sanitize() },
-                                    {"notice", ev.ChildNodes[6].InnerText.Sanitize() }
-                                });
+                        Activity activity = new Activity();
+                        activity.Title = dayActivity.ChildNodes[3].InnerText.Sanitize();
+                        activity.Room = dayActivity.ChildNodes[4].InnerText.Sanitize();
+                        activity.Lecturer = dayActivity.ChildNodes[5].InnerText.Sanitize();
+                        activity.Notice = dayActivity.ChildNodes[6].InnerText.Sanitize();
+                        string dateStr = dayActivity.ChildNodes[1].InnerText.Sanitize();
+                        string timeStr = dayActivity.ChildNodes[2].InnerText.Sanitize();
+                        Tuple<DateTime, DateTime> startAndEnd = Utility.ParseScheduleTimeColumns(dateStr, timeStr);
+                        activity.Start = startAndEnd.Item1;
+                        activity.End = startAndEnd.Item2;
+                        theWeek.Days.Add(theDay);
                     }
-                }
 
-                this.Schedule.Add(theWeek);
+                    theWeek.Days.Add(theDay);
+                    this.Schedule.Add(theWeek);
+                }
             }
-            return document;
         }
     }
 }

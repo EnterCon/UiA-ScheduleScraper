@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -39,6 +40,59 @@ namespace ScheduleGrabber
                 throw new ArgumentException("GetWeekNumber found no valid weeknumber for string: '" +
                     stringContainingWeekNumber + "'");
             return weekNumber;
+        }
+
+        public static Tuple<DateTime, DateTime> ParseScheduleTimeColumns(string date, string time)
+        {
+            DateTime start;
+            DateTime end;
+            try
+            {
+                start = DateTime.ParseExact(date, "dd-MMM", CultureInfo.InvariantCulture);
+                end = DateTime.ParseExact(date, "dd-MMM", CultureInfo.InvariantCulture);
+            }
+            catch(Exception ex)
+            {
+                throw new ArgumentException("ParseScheduleTimeColumns: can't parse date argument: '"
+                    + date + "'", ex);
+            }
+            string[] times = time.Split('-');
+            if (times.Count() != 2)
+                throw new ArgumentException("ParseScheduleTimeColumns: time argument has invalid format: '"
+                    + time + "'");
+            string startStr = times[0];
+            string endStr = times[1];
+
+            try
+            {
+                string[] hoursAndMinutes = startStr.Split('.');
+                int startHours = int.Parse(hoursAndMinutes[0]);
+                int startMinutes = int.Parse(hoursAndMinutes[1]);
+                TimeSpan startTime = new TimeSpan(startHours, startMinutes, 0);
+                start.Add(startTime);
+            }
+            catch(Exception ex)
+            {
+                throw new ArgumentException("ParseScheduleTimeColumns: couldn't parse start of day: '"
+                    + startStr + "'", ex);
+            }
+
+            try
+            {
+                string[] hoursAndMinutes = endStr.Split('.');
+                int endHours = int.Parse(times[1].Split('.')[0]);
+                int endMinutes = int.Parse(times[1].Split('.')[1]);
+                TimeSpan endTime = new TimeSpan(endHours, endMinutes, 0);
+                end.Add(endTime);
+            }
+            catch(Exception ex)
+            {
+                throw new ArgumentException("ParseScheduleTimeColumns: couldn't parse end of day: '"
+                    + endStr + "'", ex);
+            }
+
+            Tuple<DateTime, DateTime> result = new Tuple<DateTime, DateTime>(start, end);
+            return result;
         }
     }
 }

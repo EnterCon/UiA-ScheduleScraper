@@ -7,7 +7,10 @@ using System.Threading.Tasks;
 
 namespace ScheduleGrabber
 {
-
+    /// <summary>
+    /// This is the object containing the data required to create
+    /// a post request against the UiA-Schedule website.
+    /// </summary>
     public class PostData
     {
         public string __EVENTTARGET { get; set; }
@@ -28,7 +31,15 @@ namespace ScheduleGrabber
 
         }
 
-
+        /// <summary>
+        /// Encode the object so that is can be passed in a request
+        /// </summary>
+        /// <param name="department">
+        ///     the department as the dlObject
+        ///     The dlObject is the department ID from the
+        ///     UiA-Schedule website selectbox option ID.
+        /// </param>
+        /// <returns>FormUrlEncodedContent object used by HttpClient requests</returns>
         public FormUrlEncodedContent UrlEncode(Department department)
         {
             var requestData = new Dictionary<string, string>();

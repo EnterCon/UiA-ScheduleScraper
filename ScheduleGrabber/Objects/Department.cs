@@ -35,11 +35,17 @@ namespace ScheduleGrabber
             var response = Grabber.Client.PostAsync(Grabber.URL, requestData.UrlEncode(this)).Result;
             string htmlStr = response.Content.ReadAsStringAsync().Result;
             HtmlDocument scheduleHtml = htmlStr.ToHtml();
+            if (scheduleHtml == null || scheduleHtml.DocumentNode == null)
+                throw new ArgumentException("GrabSchedule + " + this.Id +
+                ": something went wrong during the POST-request!");
             var weeks = scheduleHtml.DocumentNode.Descendants("table");
 
-            string title = scheduleHtml.DocumentNode.Descendants()
-                .Where(n => n.GetAttributeValue("class", null) == "title").First().InnerText;
-            this.Name = title.Sanitize();
+            var title = scheduleHtml.DocumentNode.Descendants()
+                .Where(n => n.GetAttributeValue("class", null) == "title").FirstOrDefault();
+            this.Name = title.InnerText.Sanitize();
+
+            if (weeks.Count() == 0)
+                return;
 
             foreach (var week in weeks)
             {
@@ -83,6 +89,7 @@ namespace ScheduleGrabber
                 }
             }
         }
+
 
     }
 }

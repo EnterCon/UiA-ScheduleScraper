@@ -2,8 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -18,6 +20,7 @@ namespace ScheduleGrabber
         public static void StandardConsole()
         {
             Console.BackgroundColor = ConsoleColor.Black;
+            Console.ForegroundColor = ConsoleColor.White;
         }
 
         /// <summary>
@@ -29,9 +32,9 @@ namespace ScheduleGrabber
         ///     a block of code either in the form
         ///     of a method, or lambda expression.
         /// </param>
-        public static void ExceptionConsole(Action block)
+        public static void WriteException(Action block)
         {
-            Console.BackgroundColor = ConsoleColor.Red;
+            Console.ForegroundColor = ConsoleColor.Red;
             block.Invoke();
             Utility.StandardConsole();
         }
@@ -94,6 +97,42 @@ namespace ScheduleGrabber
                 //Stack trace is not available!
             }
             return linenum;
+        }
+
+        /// <summary>
+        /// Get the directory of the executing assembly
+        /// From: http://stackoverflow.com/a/283917
+        /// </summary>
+        public static string Directory
+        {
+            get
+            {
+                string codeBase = Assembly.GetExecutingAssembly().CodeBase;
+                UriBuilder uri = new UriBuilder(codeBase);
+                string path = Uri.UnescapeDataString(uri.Path);
+                return Path.GetDirectoryName(path);
+            }
+        }
+
+        /// <summary>
+        /// Show progress as percentage
+        /// From: http://geekswithblogs.net/abhijeetp/archive/2010/02/21/showing-progress-in-a-.net-console-application.aspx
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="currElementIndex"></param>
+        /// <param name="totalElementCount"></param>
+        static void ShowPercentProgress(string message, int currElementIndex, int totalElementCount)
+        {
+            if (currElementIndex < 0 || currElementIndex >= totalElementCount)
+            {
+                throw new InvalidOperationException("currElement out of range");
+            }
+            int percent = (100 * (currElementIndex + 1)) / totalElementCount;
+            Console.Write("\r{0}{1}% complete", message, percent);
+            if (currElementIndex == totalElementCount - 1)
+            {
+                Console.WriteLine(Environment.NewLine);
+            }
         }
     }
 }

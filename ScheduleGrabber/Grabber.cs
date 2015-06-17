@@ -33,7 +33,6 @@ namespace ScheduleGrabber
         public static PostData RequestData { get; set; }
         public static HtmlDocument SchedulePage { get; set; }
         public static List<Department> Departments { get; set; }
-        private static Stopwatch timer = new Stopwatch();
 
         /// <summary>
         /// Run the ScheduleGrabber!
@@ -47,6 +46,9 @@ namespace ScheduleGrabber
             Console.WriteLine(@"  / __/___/ /  ___ ___/ /_ __/ /__ / ___/______ _/ /  / /  ___ ____");
             Console.WriteLine(@" _\ \/ __/ _ \/ -_) _  / // / / -_) (_ / __/ _ `/ _ \/ _ \/ -_) __/");
             Console.WriteLine(@"/___/\__/_//_/\__/\_,_/\_,_/_/\__/\___/_/  \_,_/_.__/_.__/\__/_/   ");
+            Console.WriteLine();
+            Console.WriteLine(@"___________________________________________________________________");
+            Console.WriteLine();
             Console.WriteLine();
 
             bool show_help = false;
@@ -71,10 +73,8 @@ namespace ScheduleGrabber
                 SchedulePage = GetSchedulePage();
                 RequestData = GetRequestData();
                 Departments = GetDepartments(id);
-                timer.Start();
                 GrabSchedules();
                 ToFile(ToJson(Departments), file);
-                timer.Stop();
             }
             catch (OptionException e)
             {
@@ -98,9 +98,7 @@ namespace ScheduleGrabber
                 return;
             }
             Console.WriteLine();
-            Console.WriteLine("ScheduleGrabber finished grabbing in " + 
-                string.Format("{0:0.0}", timer.Elapsed.TotalSeconds) +" seconds \n("+ 
-                Departments.Count / timer.Elapsed.TotalSeconds +" departments/s)");
+            Console.WriteLine("ScheduleGrabber finished grabbing!");
             Console.ReadLine();
         }
 
@@ -202,11 +200,14 @@ namespace ScheduleGrabber
         /// </summary>
         public static void GrabSchedules()
         {
+            Stopwatch timer = new Stopwatch();
+            timer.Start();
             for (int i = 0; i < Departments.Count; i++)
             {
                 Departments[i].GrabSchedule(RequestData);
-                Utility.ShowPercentProgress("Grabbing schedule information", i, Departments.Count);
+                Utility.DrawTextProgressBar(i, Departments.Count, ref timer);
             }
+            timer.Stop();
         }
 
         /// <summary>

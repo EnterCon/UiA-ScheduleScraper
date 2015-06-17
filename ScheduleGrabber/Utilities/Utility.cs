@@ -1,6 +1,7 @@
 ﻿using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Reflection;
@@ -111,24 +112,57 @@ namespace ScheduleGrabber.Utilities
         }
 
         /// <summary>
-        /// Show progress as percentage
-        /// From: http://geekswithblogs.net/abhijeetp/archive/2010/02/21/showing-progress-in-a-.net-console-application.aspx
+        /// Draw a progress bar at the current cursor position.
+        /// Be careful not to Console.WriteLine or anything whilst using this to show progress!
+        /// Based on: https://gist.github.com/gabehesse/975472
         /// </summary>
-        /// <param name="message"></param>
-        /// <param name="currElementIndex"></param>
-        /// <param name="totalElementCount"></param>
-        public static void ShowPercentProgress(string message, int currElementIndex, int totalElementCount)
+        /// <param name="progress">The position of the bar</param>
+        /// <param name="total">The amount it counts</param>
+        public static void DrawTextProgressBar(int progress, int total, ref Stopwatch timer)
         {
-            if (currElementIndex < 0 || currElementIndex >= totalElementCount)
+            //draw empty progress bar
+            Console.CursorLeft = 0;
+            Console.Write("["); //start
+            Console.CursorLeft = 32;
+            Console.Write("]"); //end
+            Console.CursorLeft = 1;
+            float onechunk = 30.0f / total;
+
+            //draw filled part
+            int position = 1;
+            for (int i = 0; i < onechunk * progress; i++)
             {
-                throw new InvalidOperationException("currElement out of range");
+                Console.CursorLeft = position++;
+                Console.Write("=");
             }
-            int percent = (100 * (currElementIndex + 1)) / totalElementCount;
-            Console.Write("\r{0} {1}% complete", message, percent);
-            if (currElementIndex == totalElementCount - 1)
+
+            //draw unfilled part
+            for (int i = position; i <= 31; i++)
             {
-                Console.WriteLine(Environment.NewLine);
+                Console.CursorLeft = position++;
+                Console.Write(" ");
             }
+
+            string str = "";
+            if(progress != 0) // Avoid infinity
+            {
+                double timePerIteration = timer.Elapsed.TotalSeconds / (double)progress;
+                double timeleft = timePerIteration * ((double)total - (double)progress);
+                TimeSpan time = TimeSpan.FromSeconds(timeleft);
+                str = time.ToString(@"mm\:ss");
+            }
+
+            if (progress < 0 || progress >= total)
+            {
+                throw new InvalidOperationException("DrawProgressBar: Index out of range");
+            }
+            int percent = (100 * (progress + 1)) / total;
+
+            //draw totals
+            Console.CursorLeft = 35;
+            Console.BackgroundColor = ConsoleColor.Black;
+            Console.Write(progress.ToString() + " of " + total.ToString() +
+                " " + percent + " percent (" + str + " left)  "); //blanks at the end remove any excess
         }
     }
 }

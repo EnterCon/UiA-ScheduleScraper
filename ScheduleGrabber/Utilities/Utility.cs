@@ -1,16 +1,12 @@
 ﻿using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
-namespace ScheduleGrabber
+namespace ScheduleGrabber.Utilities
 {
     public static class Utility
     {
@@ -44,7 +40,7 @@ namespace ScheduleGrabber
         /// </summary>
         /// <param name="str">the string</param>
         /// <returns>an HtmlDocument object</returns>
-        public static HtmlDocument ToHtml(this string str)
+        public static HtmlDocument ToHtml(string str)
         {
             str = WebUtility.HtmlDecode(str);
             HtmlDocument doc = new HtmlDocument();
@@ -57,7 +53,7 @@ namespace ScheduleGrabber
         /// </summary>
         /// <param name="str">the string</param>
         /// <returns>result of sanitation</returns>
-        public static string Sanitize(this string str)
+        public static string Sanitize(string str)
         {
             StringBuilder res = new StringBuilder();
             List<char> escapeSequences = new List<char>

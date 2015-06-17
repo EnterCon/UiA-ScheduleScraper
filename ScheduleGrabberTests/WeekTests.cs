@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using ScheduleGrabber.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;

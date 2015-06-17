@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 
-namespace ScheduleGrabber
+namespace ScheduleGrabber.Objects
 {
     public class Week
     {
-        public int Number { get; set; }
+        public int WeekNumber { get; set; }
         public int Year { get; set; }
         public List<Day> Days { get; set; }
 

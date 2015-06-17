@@ -2,12 +2,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
-using System.Text;
 using System.Diagnostics;
 using NDesk.Options;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using Newtonsoft.Json.Converters;
+using ScheduleGrabber.Objects;
+using ScheduleGrabber.Utilities;
 
 namespace ScheduleGrabber
 {
@@ -19,6 +21,8 @@ namespace ScheduleGrabber
     /// 
     /// TODO:
     ///     * From LINQ to XPath when querying the HtmlDocument for nodes (prettier)
+    ///     * Implement better progress notifications
+    ///     * Create tests for important functionality
     ///     * Consider XML support
     ///     * Consider No-SQL support
     /// </summary>
@@ -67,7 +71,10 @@ namespace ScheduleGrabber
                 SchedulePage = GetSchedulePage();
                 RequestData = GetRequestData();
                 Departments = GetDepartments(id);
-                ToFile(GrabSchedules(Departments), file);
+                timer.Start();
+                GrabSchedules();
+                ToFile(ToJson(Departments), file);
+                timer.Stop();
             }
             catch (OptionException e)
             {
@@ -90,6 +97,11 @@ namespace ScheduleGrabber
                 });
                 return;
             }
+            Console.WriteLine();
+            Console.WriteLine("ScheduleGrabber finished grabbing in " + 
+                string.Format("{0:0.0}", timer.Elapsed.TotalSeconds) +" seconds \n("+ 
+                Departments.Count / timer.Elapsed.TotalSeconds +" departments/s)");
+            Console.ReadLine();
         }
 
         /// <summary>
@@ -116,7 +128,7 @@ namespace ScheduleGrabber
             HtmlDocument document = new HtmlDocument();
             var response = Client.GetAsync(URL).Result;
             var responseContent = response.Content.ReadAsStringAsync().Result;
-            document = responseContent.ToHtml();
+            document = Utility.ToHtml(responseContent);
             return document;
         }
 
@@ -185,18 +197,15 @@ namespace ScheduleGrabber
         }
 
         /// <summary>
-        /// Grab schedules for a list of departments, and serialize it to JSON
+        /// Grab schedules for a list of departments
         /// </summary>
-        /// <param name="departments">A list of departments</param>
-        /// <returns>a JSON-formatted string</returns>
-        public static string GrabSchedules(List<Department> departments)
+        public static void GrabSchedules()
         {
-            for (int i = 0; i < departments.Count; i++)
+            for (int i = 0; i < Departments.Count; i++)
             {
-                departments[i].GrabSchedule(RequestData);
-                Utility.ShowPercentProgress("Grabbing schedule information", i, departments.Count);
+                Departments[i].GrabSchedule(RequestData);
+                Utility.ShowPercentProgress("Grabbing schedule information", i, Departments.Count);
             }
-            return ToJson(departments);
         }
 
         /// <summary>
@@ -205,7 +214,14 @@ namespace ScheduleGrabber
         /// <returns>JSON-formatted string</returns>
         public static string ToJson(object value)
         {
-            return Newtonsoft.Json.JsonConvert.SerializeObject(value, Formatting.Indented);
+            var settings = new JsonSerializerSettings();
+            settings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+            settings.Converters.Add(new IsoDateTimeConverter() { DateTimeFormat = "dd-MM-yyyy HH:mm:ss" });
+            return Newtonsoft.Json.JsonConvert.SerializeObject(
+                value,
+                Formatting.Indented,
+                settings
+            );
         }
 
         /// <summary>

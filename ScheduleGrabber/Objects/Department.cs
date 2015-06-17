@@ -2,12 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Text.RegularExpressions;
-using System.Globalization;
+using ScheduleGrabber.Utilities;
 
-namespace ScheduleGrabber
+namespace ScheduleGrabber.Objects
 {
     public class Department
     {
@@ -41,7 +38,7 @@ namespace ScheduleGrabber
             var urlEncoded = requestData.UrlEncode(this);
             var response = Grabber.Client.PostAsync(Grabber.URL, urlEncoded).Result;
             string htmlStr = response.Content.ReadAsStringAsync().Result;
-            HtmlDocument scheduleHtml = htmlStr.ToHtml();
+            HtmlDocument scheduleHtml = Utility.ToHtml(htmlStr);
             if (scheduleHtml == null || scheduleHtml.DocumentNode == null)
                 throw new ArgumentException("GrabSchedule + " + this.Id +
                 ": something went wrong during the POST-request!");
@@ -49,7 +46,7 @@ namespace ScheduleGrabber
 
             var title = scheduleHtml.DocumentNode.Descendants()
                 .Where(n => n.GetAttributeValue("class", null) == "title").FirstOrDefault();
-            this.Name = title.InnerText.Sanitize();
+            this.Name = Utility.Sanitize(title.InnerText);
 
             if (weeks.Count() == 0)
                 return;
@@ -61,22 +58,20 @@ namespace ScheduleGrabber
                 {
                     Week theWeek = new Week();
                     List<Day> dayList = new List<Day>();
-                    string weekString = week.SelectSingleNode("tr[@class='tr1']/td[@class='td1']")
-                        .InnerText.Sanitize();
-                    theWeek.Number = Week.GetWeekNumber(weekString);
+                    string weekString = Utility.Sanitize(week.SelectSingleNode("tr[@class='tr1']/td[@class='td1']")
+                        .InnerText);
+                    theWeek.WeekNumber = Week.GetWeekNumber(weekString);
                     theWeek.Year = Week.GetYear(weekString);
                     foreach (var dayActivity in days)
                     {
                         Activity activity = new Activity();
-                        activity.Title = dayActivity.ChildNodes[3].InnerText.Sanitize();
-                        activity.Room = dayActivity.ChildNodes[4].InnerText.Sanitize();
-                        activity.Lecturer = dayActivity.ChildNodes[5].InnerText.Sanitize();
-                        activity.Notice = dayActivity.ChildNodes[6].InnerText.Sanitize();
-                        string dateStr = dayActivity.ChildNodes[1].InnerText.Sanitize();
-                        string timeStr = dayActivity.ChildNodes[2].InnerText.Sanitize();
-                        Tuple<DateTime, DateTime> startAndEnd = Activity.ParseTimespan(theWeek.Year, dateStr, timeStr);
-                        activity.Start = startAndEnd.Item1;
-                        activity.End = startAndEnd.Item2;
+                        activity.ParseCourses(Utility.Sanitize(dayActivity.ChildNodes[3].InnerText));
+                        activity.ParseRooms(Utility.Sanitize(dayActivity.ChildNodes[4].InnerText));
+                        activity.Lecturer = Utility.Sanitize(dayActivity.ChildNodes[5].InnerText);
+                        activity.Notice = Utility.Sanitize(dayActivity.ChildNodes[6].InnerText);
+                        string dateStr = Utility.Sanitize(dayActivity.ChildNodes[1].InnerText);
+                        string timeStr = Utility.Sanitize(dayActivity.ChildNodes[2].InnerText);
+                        activity.ParseTimespan(theWeek.Year, dateStr, timeStr);
                         var currentDate = dayList.Where(d => d.Date.Date.Equals(activity.Start.Date));
                         if (currentDate.Count() == 0)
                         {

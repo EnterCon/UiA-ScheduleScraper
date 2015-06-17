@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ScheduleGrabber
+namespace ScheduleGrabber.Objects
 {
     /// <summary>
     /// This is the object containing the data required to create

@@ -9,5 +9,10 @@ namespace ScheduleGrabber
     {
         public DateTime Date { get; set; }
         public List<Activity> Activities { get; set; }
+
+        public Day()
+        {
+            this.Activities = new List<Activity>();
+        }
     }
 }

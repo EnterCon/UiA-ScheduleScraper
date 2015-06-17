@@ -33,7 +33,7 @@ namespace ScheduleGrabber
             DateTime end;
             string[] times = time.Split('-');
             if (times.Count() != 2)
-                throw new ArgumentException("ParseScheduleTimeColumns: time argument has invalid format: '"
+                throw new ArgumentException("ParseTimespan: time argument has invalid format: '"
                     + time + "'");
             string startStr = times[0];
             string endStr = times[1];
@@ -46,11 +46,11 @@ namespace ScheduleGrabber
                         hoursAndMinutes[i].Length == 1 ? "0" + hoursAndMinutes[i] : hoursAndMinutes[i];
                 object[] parameters = new object[] { date, year, hoursAndMinutes[0], hoursAndMinutes[1] };
                 start = DateTime.ParseExact(String.Format("{0} {1} {2}.{3}.00", parameters), 
-                    "dd MMM yyyy hh.mm.ss", CultureInfo.InvariantCulture);
+                    "dd MMM yyyy HH.mm.ss", CultureInfo.InvariantCulture);
             }
             catch (Exception ex)
             {
-                throw new ArgumentException("ParseScheduleTimeColumns: couldn't parse start of activity: '"
+                throw new ArgumentException("ParseTimespan: couldn't parse start of activity: '"
                     + startStr + "'", ex);
             }
 
@@ -62,11 +62,11 @@ namespace ScheduleGrabber
                         hoursAndMinutes[i].Length == 1 ? "0" + hoursAndMinutes[i] : hoursAndMinutes[i];
                 object[] parameters = new object[] { date, year, hoursAndMinutes[0], hoursAndMinutes[1] };
                 end = DateTime.ParseExact(String.Format("{0} {1} {2}.{3}.00", parameters),
-                    "dd MMM yyyy hh.mm.ss", CultureInfo.InvariantCulture);
+                    "dd MMM yyyy HH.mm.ss", CultureInfo.InvariantCulture);
             }
             catch (Exception ex)
             {
-                throw new ArgumentException("ParseScheduleTimeColumns: couldn't parse end of activity: '"
+                throw new ArgumentException("ParseTimespan: couldn't parse end of activity: '"
                     + endStr + "'", ex);
             }
 

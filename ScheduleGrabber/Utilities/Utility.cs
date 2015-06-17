@@ -121,14 +121,14 @@ namespace ScheduleGrabber
         /// <param name="message"></param>
         /// <param name="currElementIndex"></param>
         /// <param name="totalElementCount"></param>
-        static void ShowPercentProgress(string message, int currElementIndex, int totalElementCount)
+        public static void ShowPercentProgress(string message, int currElementIndex, int totalElementCount)
         {
             if (currElementIndex < 0 || currElementIndex >= totalElementCount)
             {
                 throw new InvalidOperationException("currElement out of range");
             }
             int percent = (100 * (currElementIndex + 1)) / totalElementCount;
-            Console.Write("\r{0}{1}% complete", message, percent);
+            Console.Write("\r{0} {1}% complete", message, percent);
             if (currElementIndex == totalElementCount - 1)
             {
                 Console.WriteLine(Environment.NewLine);

@@ -44,7 +44,7 @@ namespace ScheduleGrabber
         {
             var requestData = new Dictionary<string, string>();
             requestData.Add("dlObject", department.Id);
-            foreach (var prop in typeof(PostData).GetFields())
+            foreach (var prop in typeof(PostData).GetProperties())
             {
                 requestData.Add(prop.Name, prop.GetValue(this) as string);
             }

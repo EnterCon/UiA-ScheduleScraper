@@ -15,8 +15,14 @@ namespace ScheduleGrabber
         public string Name { get; set; }
         public List<Week> Schedule { get; set; }
 
+        public Department()
+        {
+            this.Schedule = new List<Week>();
+        }
+
         public Department(string id)
         {
+            this.Schedule = new List<Week>();
             this.Id = id;
         }
 
@@ -32,7 +38,8 @@ namespace ScheduleGrabber
         /// </param>
         public void GrabSchedule(PostData requestData)
         {
-            var response = Grabber.Client.PostAsync(Grabber.URL, requestData.UrlEncode(this)).Result;
+            var urlEncoded = requestData.UrlEncode(this);
+            var response = Grabber.Client.PostAsync(Grabber.URL, urlEncoded).Result;
             string htmlStr = response.Content.ReadAsStringAsync().Result;
             HtmlDocument scheduleHtml = htmlStr.ToHtml();
             if (scheduleHtml == null || scheduleHtml.DocumentNode == null)

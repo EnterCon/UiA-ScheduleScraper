@@ -25,7 +25,7 @@ namespace ScheduleGrabber
     public static class Grabber
     {
         public static HttpClient Client = new HttpClient();
-        public static string URL = "http://timeplan.uia.no/swsuiav/public/no/default.aspx";
+        public static string URL = "http://timeplan.uia.no/swsuiah/public/no/default.aspx";
         public static PostData RequestData { get; set; }
         public static HtmlDocument SchedulePage { get; set; }
         public static List<Department> Departments { get; set; }
@@ -191,8 +191,11 @@ namespace ScheduleGrabber
         /// <returns>a JSON-formatted string</returns>
         public static string GrabSchedules(List<Department> departments)
         {
-            foreach (var department in departments)
-                department.GrabSchedule(RequestData);
+            for (int i = 0; i < departments.Count; i++)
+            {
+                departments[i].GrabSchedule(RequestData);
+                Utility.ShowPercentProgress("Grabbing schedule information", i, departments.Count);
+            }
             return ToJson(departments);
         }
 
@@ -210,9 +213,11 @@ namespace ScheduleGrabber
         /// </summary>
         /// <param name="file">the file to write to</param>
         /// <param name="json">JSON-formatted representation of department schedules</param>
-        public static void ToFile(string json, string file = "departments.json")
+        public static void ToFile(string json, string file = null)
         {
-            System.IO.File.WriteAllText(Utility.Directory + file, json);
+            if (file == null || file.Length < 1)
+                file = "departments.json";
+            System.IO.File.WriteAllText(Utility.Directory + "\\" + file, json);
         }
     }
 }

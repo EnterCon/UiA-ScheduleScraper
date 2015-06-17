@@ -8,10 +8,14 @@ namespace ScheduleGrabber
 {
     public class Week
     {
-        public string Name { get; set; }
         public int Number { get; set; }
         public int Year { get; set; }
         public List<Day> Days { get; set; }
+
+        public Week()
+        {
+            this.Days = new List<Day>();
+        }
 
         /// <summary>
         /// Get the weeknumber from a table header in the schedule website

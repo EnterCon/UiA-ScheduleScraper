@@ -27,20 +27,10 @@ namespace ScheduleGrabber
         ///     time : "09.15-11.00"
         /// </param>
         /// <returns>a tuple of the start and end of an activity</returns>
-        public static Tuple<DateTime, DateTime> ParseTimespan(string date, string time)
+        public static Tuple<DateTime, DateTime> ParseTimespan(int year, string date, string time)
         {
             DateTime start;
             DateTime end;
-            try
-            {
-                start = DateTime.ParseExact(date, "dd-MMM", CultureInfo.InvariantCulture);
-                end = DateTime.ParseExact(date, "dd-MMM", CultureInfo.InvariantCulture);
-            }
-            catch (Exception ex)
-            {
-                throw new ArgumentException("ParseScheduleTimeColumns: can't parse date argument: '"
-                    + date + "'", ex);
-            }
             string[] times = time.Split('-');
             if (times.Count() != 2)
                 throw new ArgumentException("ParseScheduleTimeColumns: time argument has invalid format: '"
@@ -51,28 +41,32 @@ namespace ScheduleGrabber
             try
             {
                 string[] hoursAndMinutes = startStr.Split('.');
-                int startHours = int.Parse(hoursAndMinutes[0]);
-                int startMinutes = int.Parse(hoursAndMinutes[1]);
-                TimeSpan startTime = new TimeSpan(startHours, startMinutes, 0);
-                start.Add(startTime);
+                for (int i = 0; i < hoursAndMinutes.Length; i++)
+                    hoursAndMinutes[i] =
+                        hoursAndMinutes[i].Length == 1 ? "0" + hoursAndMinutes[i] : hoursAndMinutes[i];
+                object[] parameters = new object[] { date, year, hoursAndMinutes[0], hoursAndMinutes[1] };
+                start = DateTime.ParseExact(String.Format("{0} {1} {2}.{3}.00", parameters), 
+                    "dd MMM yyyy hh.mm.ss", CultureInfo.InvariantCulture);
             }
             catch (Exception ex)
             {
-                throw new ArgumentException("ParseScheduleTimeColumns: couldn't parse start of day: '"
+                throw new ArgumentException("ParseScheduleTimeColumns: couldn't parse start of activity: '"
                     + startStr + "'", ex);
             }
 
             try
             {
                 string[] hoursAndMinutes = endStr.Split('.');
-                int endHours = int.Parse(times[1].Split('.')[0]);
-                int endMinutes = int.Parse(times[1].Split('.')[1]);
-                TimeSpan endTime = new TimeSpan(endHours, endMinutes, 0);
-                end.Add(endTime);
+                for (int i = 0; i < hoursAndMinutes.Length; i++)
+                    hoursAndMinutes[i] =
+                        hoursAndMinutes[i].Length == 1 ? "0" + hoursAndMinutes[i] : hoursAndMinutes[i];
+                object[] parameters = new object[] { date, year, hoursAndMinutes[0], hoursAndMinutes[1] };
+                end = DateTime.ParseExact(String.Format("{0} {1} {2}.{3}.00", parameters),
+                    "dd MMM yyyy hh.mm.ss", CultureInfo.InvariantCulture);
             }
             catch (Exception ex)
             {
-                throw new ArgumentException("ParseScheduleTimeColumns: couldn't parse end of day: '"
+                throw new ArgumentException("ParseScheduleTimeColumns: couldn't parse end of activity: '"
                     + endStr + "'", ex);
             }
 

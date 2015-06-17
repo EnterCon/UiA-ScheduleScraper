@@ -70,7 +70,8 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="Tests.cs" />
+    <Compile Include="ActivityTests.cs" />
+    <Compile Include="WeekTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

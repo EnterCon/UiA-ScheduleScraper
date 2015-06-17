@@ -61,7 +61,7 @@ namespace ScheduleGrabber
                         activity.Notice = dayActivity.ChildNodes[6].InnerText.Sanitize();
                         string dateStr = dayActivity.ChildNodes[1].InnerText.Sanitize();
                         string timeStr = dayActivity.ChildNodes[2].InnerText.Sanitize();
-                        Tuple<DateTime, DateTime> startAndEnd = Activity.ParseTimespan(dateStr, timeStr);
+                        Tuple<DateTime, DateTime> startAndEnd = Activity.ParseTimespan(theWeek.Year, dateStr, timeStr);
                         activity.Start = startAndEnd.Item1;
                         activity.End = startAndEnd.Item2;
                         var currentDate = dayList.Where(d => d.Date.Date.Equals(activity.Start.Date));

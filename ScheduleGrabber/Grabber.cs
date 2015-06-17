@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Diagnostics;
+using NDesk.Options;
 
 namespace ScheduleGrabber
 {
@@ -24,7 +25,6 @@ namespace ScheduleGrabber
         public static string URL = "http://timeplan.uia.no/swsuiav/public/no/default.aspx";
         public static PostData RequestData { get; set; }
         public static HtmlDocument SchedulePage { get; set; }
-
         static Stopwatch timer = new Stopwatch();
 
         /// <summary>
@@ -33,31 +33,53 @@ namespace ScheduleGrabber
         /// <param name="args">CLI arguments</param>
         static void Main(string[] args)
         {
+            Utility.StandardConsole();
+            Console.WriteLine();
+            Console.WriteLine(@"   ____    __          __     __    _____         __   __          ");
+            Console.WriteLine(@"  / __/___/ /  ___ ___/ /_ __/ /__ / ___/______ _/ /  / /  ___ ____");
+            Console.WriteLine(@" _\ \/ __/ _ \/ -_) _  / // / / -_) (_ / __/ _ `/ _ \/ _ \/ -_) __/");
+            Console.WriteLine(@"/___/\__/_//_/\__/\_,_/\_,_/_/\__/\___/_/  \_,_/_.__/_.__/\__/_/   ");
+            Console.WriteLine();
+
+            bool show_help = false;
+            var options = new OptionSet()
+                .Add("h|help",  "show this message and exit", v => show_help = v != null);
+
             try
             {
-                Utility.StandardConsole();
+                List<string> extra = new List<string>();
+                extra = options.Parse(args);
                 SchedulePage = GetSchedulePage();
                 RequestData = GetRequestData();
                 List<Department> departments = GetDepartments();
- 
-                timer.Start();
-
-                timer.Stop();
             }
-            catch (Exception ex)
+            catch (OptionException e)
             {
-                Utility.ExceptionConsole(() =>
-                {
-                    Console.WriteLine("");
-                    Console.WriteLine("EXCEPTION OCCURRED: \n " + ex.Message + 
-                        " \n at: " + ex.LineNumber());
-                });
+                Console.Write("UiA ScheduleGrabber: ");
+                Console.WriteLine(e.Message);
+                Console.WriteLine("Try `ScheduleGrabber --help' for more information.");
+                return;
             }
 
-            Console.WriteLine("");
-            Console.WriteLine("ScheduleGrabber finished grabbing in " + 
-                string.Format("{0:0.0}", timer.Elapsed.TotalSeconds));
-            Console.ReadLine();
+            if (show_help)
+            {
+                ShowHelp(options);
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Display available options
+        /// </summary>
+        /// <param name="options">the NDesk.OptionSet</param>
+        static void ShowHelp(OptionSet options)
+        {
+            Console.WriteLine("Usage: ScheduleGrabber [OPTIONS]");
+            Console.WriteLine("Write UiA schedule data to JSON");
+            Console.WriteLine("If no flags are given, departments.json is generated.");
+            Console.WriteLine();
+            Console.WriteLine("Options:");
+            options.WriteOptionDescriptions(Console.Out);
         }
 
         /// <summary>

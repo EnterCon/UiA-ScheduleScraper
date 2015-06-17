@@ -17,7 +17,7 @@ namespace ScheduleGrabber
         /// </summary>
         public static void StandardConsole()
         {
-            Console.BackgroundColor = ConsoleColor.Green;
+            Console.BackgroundColor = ConsoleColor.Black;
         }
 
         /// <summary>

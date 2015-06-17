@@ -55,7 +55,7 @@ namespace ScheduleGrabber
             var options = new OptionSet()
                 .Add("h|help", "show this message and exit", v => show_help = v != null)
                 .Add("f|file=", "write JSON to specified file", input => file = input)
-                .Add("i|id=", "write only the specified ID to JSON file", input => id = input);
+                .Add("i|id=", "write only the schedule data related to a specific department ID to JSON file", input => id = input);
 
             try
             {
@@ -111,8 +111,9 @@ namespace ScheduleGrabber
         static void ShowHelp(OptionSet options)
         {
             Console.WriteLine("Usage: ScheduleGrabber [OPTIONS]");
-            Console.WriteLine("Write UiA schedule data to JSON");
-            Console.WriteLine("If no flags are given, departments.json is generated.");
+            Console.WriteLine("Write UiA schedule data to JSON.");
+            Console.WriteLine("If no flags are given, departments.json is generated\n" +
+                "from the schedule data of all departments.");
             Console.WriteLine();
             Console.WriteLine("Options:");
             options.WriteOptionDescriptions(Console.Out);

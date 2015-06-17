@@ -78,6 +78,7 @@ namespace ScheduleGrabber.Objects
                             Day aday = new Day();
                             aday.Activities.Add(activity);
                             aday.Date = new DateTime(activity.Start.Year, activity.Start.Month, activity.Start.Day);
+                            aday.DayOfWeek = aday.Date.DayOfWeek.ToString();
                             dayList.Add(aday);
                         }
                         else if (currentDate.Count() == 1)

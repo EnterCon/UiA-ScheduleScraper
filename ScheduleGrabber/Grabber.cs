@@ -10,6 +10,9 @@ using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json.Converters;
 using ScheduleGrabber.Objects;
 using ScheduleGrabber.Utilities;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace ScheduleGrabber
 {
@@ -32,7 +35,7 @@ namespace ScheduleGrabber
         public static string URL = "http://timeplan.uia.no/swsuiah/public/no/default.aspx";
         public static PostData RequestData { get; set; }
         public static HtmlDocument SchedulePage { get; set; }
-        public static List<Department> Departments { get; set; }
+        public static ConcurrentBag<Department> Departments { get; set; }
 
         /// <summary>
         /// Run the ScheduleGrabber!
@@ -176,12 +179,12 @@ namespace ScheduleGrabber
         /// into memory, so that we can grab their schedule.
         /// </summary>
         /// <returns>a list of department objects</returns>
-        public static List<Department> GetDepartments(string id = null)
+        public static ConcurrentBag<Department> GetDepartments(string id = null)
         {
             if (SchedulePage == null || SchedulePage.DocumentNode == null || SchedulePage.DocumentNode.Descendants().Count() == 0)
                 throw new ArgumentException("GetDepartments: the ScheduledPage hasn't been loaded into memory.");
             HtmlNode selectBox = SchedulePage.DocumentNode.Descendants().Where(d => d.Id == "dlObject").First();
-            List<Department> departments = new List<Department>();
+            ConcurrentBag<Department> departments = new ConcurrentBag<Department>();
             if (id != null)
             {
                 departments.Add(new Department(selectBox.Descendants("option")
@@ -202,11 +205,13 @@ namespace ScheduleGrabber
         {
             Stopwatch timer = new Stopwatch();
             timer.Start();
-            for (int i = 0; i < Departments.Count; i++)
+            int counter = 0;
+            Parallel.ForEach(Departments, new ParallelOptions { MaxDegreeOfParallelism = 4 }, department =>
             {
-                Departments[i].GrabSchedule(RequestData);
-                Utility.DrawTextProgressBar(i + 1, Departments.Count, ref timer);
-            }
+                department.GrabSchedule(RequestData);
+                Interlocked.Increment(ref counter);
+                Utility.DrawTextProgressBar(counter, Departments.Count, ref timer);
+            });
             timer.Stop();
         }
 

@@ -133,6 +133,7 @@ namespace ScheduleGrabber.Utilities
             for (int i = 0; i < onechunk * progress; i++)
             {
                 Console.CursorLeft = position++;
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.Write("=");
             }
 
@@ -140,6 +141,7 @@ namespace ScheduleGrabber.Utilities
             for (int i = position; i <= 31; i++)
             {
                 Console.CursorLeft = position++;
+                Console.ForegroundColor = ConsoleColor.White;
                 Console.Write(" ");
             }
 
@@ -162,7 +164,7 @@ namespace ScheduleGrabber.Utilities
             Console.CursorLeft = 35;
             Console.BackgroundColor = ConsoleColor.Black;
             Console.Write(progress.ToString() + " of " + total.ToString() +
-                " " + percent + " percent (" + str + " left)  "); //blanks at the end remove any excess
+                " (" + percent + " percent) (" + str + " left) ");
         }
     }
 }

@@ -164,7 +164,7 @@ namespace ScheduleGrabber.Utilities
             Console.CursorLeft = 35;
             Console.BackgroundColor = ConsoleColor.Black;
             Console.Write(progress.ToString() + " of " + total.ToString() +
-                " (" + percent + " percent) (" + str + " left) ");
+                " (" + percent + "% done) (" + str + " left) ");
         }
     }
 }

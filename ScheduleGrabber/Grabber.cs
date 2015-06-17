@@ -205,7 +205,7 @@ namespace ScheduleGrabber
             for (int i = 0; i < Departments.Count; i++)
             {
                 Departments[i].GrabSchedule(RequestData);
-                Utility.DrawTextProgressBar(i, Departments.Count, ref timer);
+                Utility.DrawTextProgressBar(i + 1, Departments.Count, ref timer);
             }
             timer.Stop();
         }

@@ -36,10 +36,10 @@ namespace ScheduleGrabber
         public static string URL = "http://timeplan.uia.no/swsuiah/public/no/default.aspx";
         public static PostData RequestData { get; set; }
         public static HtmlDocument SchedulePage { get; set; }
-        public static ConcurrentBag<Department> Departments { get; set; }
-
+        public static List<Department> Departments = new List<Department>();
         public static Stopwatch Timer = new Stopwatch();
         public static Queue<string> Latest = new Queue<string>();
+        public static List<Exception> RuntimeExceptions = new List<Exception>();
 
         /// <summary>
         /// Run the ScheduleGrabber!
@@ -76,13 +76,14 @@ namespace ScheduleGrabber
                 if (show_help)
                 {
                     ShowHelp(options);
-                    return;
+                    Console.WriteLine("Press any key to continue...");
+                    Console.ReadKey();
                 }
                 Task.Run( async () =>
                 { 
                     SchedulePage = GetSchedulePage();
                     RequestData = GetRequestData();
-                    Departments = GetDepartments(id);
+                    GetDepartments(id);
                     await GrabSchedules();
                     ToFile(ToJson(Departments), file);
                 }).Wait();
@@ -95,7 +96,8 @@ namespace ScheduleGrabber
                     Console.WriteLine(e.Message);
                     Console.WriteLine("Try `ScheduleGrabber --help' for more information.");
                 });
-                return;
+                Console.WriteLine("Press any key to continue...");
+                Console.ReadKey();
             }
             catch(Exception e)
             {
@@ -106,11 +108,13 @@ namespace ScheduleGrabber
                     Console.WriteLine("At line number: " + e.LineNumber());
                     Console.WriteLine();
                 });
-                return;
+                Console.WriteLine("Press any key to continue...");
+                Console.ReadKey();
             }
             Console.WriteLine();
             Console.WriteLine("ScheduleGrabber finished grabbing!");
-            Console.ReadLine();
+            Console.WriteLine("Press any key to continue...");
+            Console.ReadKey();
         }
 
         /// <summary>
@@ -187,23 +191,21 @@ namespace ScheduleGrabber
         /// into memory, so that we can grab their schedule.
         /// </summary>
         /// <returns>a list of department objects</returns>
-        public static ConcurrentBag<Department> GetDepartments(string id = null)
+        public static void GetDepartments(string id = null)
         {
             if (SchedulePage == null || SchedulePage.DocumentNode == null || SchedulePage.DocumentNode.Descendants().Count() == 0)
                 throw new ArgumentException("GetDepartments: the ScheduledPage hasn't been loaded into memory.");
             HtmlNode selectBox = SchedulePage.DocumentNode.Descendants().Where(d => d.Id == "dlObject").First();
-            ConcurrentBag<Department> departments = new ConcurrentBag<Department>();
             if (id != null)
             {
-                departments.Add(new Department(selectBox.Descendants("option")
+                Departments.Add(new Department(selectBox.Descendants("option")
                     .Where(o => o.GetAttributeValue("value", null) == id).First().GetAttributeValue("value", null)));
             }
             else
             {
                 foreach (var option in selectBox.Descendants("option"))
-                    departments.Add(new Department(option.GetAttributeValue("value", null)));
+                    Departments.Add(new Department(option.GetAttributeValue("value", null)));
             }
-            return departments;
         }
 
         /// <summary>
@@ -213,9 +215,9 @@ namespace ScheduleGrabber
         {
             Timer.Start();
             int counter = 0;
-            
-            var tasks = Departments.Select(dep => dep.GrabSchedule(RequestData)
-                .ContinueWith(async time => UpdateConsole(ref counter, dep, await time))).ToArray();
+
+            var tasks = Departments.Select(department => department.GrabSchedule()
+                .ContinueWith(async dep => UpdateConsole(ref counter, await dep))).ToArray();
             await Task.WhenAll(tasks);
             Timer.Stop();
         }
@@ -227,22 +229,25 @@ namespace ScheduleGrabber
         /// <param name="counter">Departments iteration counter</param>
         /// <param name="dep">the department that was just finished</param>
         /// <param name="time">how long it took to finish that department in milliseconds</param>
-        public static void UpdateConsole(ref int counter, Department dep, long time)
+        public static void UpdateConsole(ref int counter, Department department)
         {
             Interlocked.Increment(ref counter);
             Utility.DrawTextProgressBar(counter, Departments.Count, ref Timer);
             Console.SetCursorPosition(0, 8);
-            Latest.Enqueue(dep.Name);
+            string timeStr = " (" + department.Timer.ElapsedMilliseconds + " ms)";
+            string departmentStr = department.Name;
+            departmentStr = (departmentStr.Length >= Console.WindowWidth - timeStr.Length)
+                            ? departmentStr.Remove(Console.WindowWidth - timeStr.Length - 1)
+                            : departmentStr;
+            Latest.Enqueue(departmentStr + timeStr);
             if (Latest.Count > 3)
                 Latest.Dequeue();
 
             int i = 0;
-            foreach (string department in Latest)
+            foreach (string dep in Latest)
             {
                 Utility.ClearCurrentConsoleLine();
-                Console.WriteLine("\r" + ((department.Length >= Console.WindowWidth) 
-                                            ? department.Remove(Console.WindowWidth) 
-                                            : department) + " (" + time + " ms)");
+                Console.WriteLine("\r" + dep);
                 i++;
             }
         }

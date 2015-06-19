@@ -132,9 +132,7 @@ namespace ScheduleGrabber.Utilities
 
             //draw unfilled part
             for (int i = where; i <= 31; i++)
-            {
                 progressBar.Append(' ');
-            }
             progressBar.Append(']');
 
             string str = "";
@@ -147,9 +145,7 @@ namespace ScheduleGrabber.Utilities
             }
 
             if (progress < 0 || progress > total)
-            {
                 throw new InvalidOperationException("DrawProgressBar: Index out of range");
-            }
             int percent = 100 * progress / total;
 
             progressBar.Append(progress.ToString() + " of " + total.ToString() +

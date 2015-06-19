@@ -22,10 +22,16 @@ namespace ScheduleGrabber.Objects
             this.Schedule = new List<Week>();
         }
 
-        public Department(string id)
+        public Department(string id, string name)
         {
             this.Schedule = new List<Week>();
             this.Id = id;
+            this.Name = name;
+        }
+
+        public Department(Exception exception)
+        {
+            this.Exception = exception;
         }
 
         /// <summary>
@@ -52,10 +58,6 @@ namespace ScheduleGrabber.Objects
                     throw new ArgumentException("GrabSchedule + " + this.Id +
                     ": something went wrong during the POST-request!");
                 var weeks = scheduleHtml.DocumentNode.Descendants("table");
-
-                var title = scheduleHtml.DocumentNode.Descendants()
-                    .Where(n => n.GetAttributeValue("class", null) == "title").FirstOrDefault();
-                this.Name = Utility.Sanitize(title.InnerText);
 
                 if (weeks.Count() == 0)
                     return this;

@@ -150,7 +150,7 @@ namespace ScheduleGrabber.Utilities
 
             progressBar.Append(progress.ToString() + " of " + total.ToString() +
                 " (" + percent + "% done) (" + str + " left) ");
-            Console.SetCursorPosition(0, 15);
+            Console.SetCursorPosition(0, 18);
             Console.Write("\r" + progressBar.ToString());
         }
 

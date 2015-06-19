@@ -193,18 +193,34 @@ namespace ScheduleGrabber
         /// <returns>a list of department objects</returns>
         public static void GetDepartments(string id = null)
         {
-            if (SchedulePage == null || SchedulePage.DocumentNode == null || SchedulePage.DocumentNode.Descendants().Count() == 0)
+            if (SchedulePage == null || SchedulePage.DocumentNode == null 
+                || SchedulePage.DocumentNode.Descendants().Count() == 0)
                 throw new ArgumentException("GetDepartments: the ScheduledPage hasn't been loaded into memory.");
             HtmlNode selectBox = SchedulePage.DocumentNode.Descendants().Where(d => d.Id == "dlObject").First();
             if (id != null)
             {
-                Departments.Add(new Department(selectBox.Descendants("option")
-                    .Where(o => o.GetAttributeValue("value", null) == id).First().GetAttributeValue("value", null)));
+                var elem = selectBox.Descendants("option")
+                    .Where(o => o.GetAttributeValue("value", null) == id).First();
+                string idStr = elem.GetAttributeValue("value", null);
+                string name = elem.InnerText;
+                Department department = new Department(idStr, name);
+                Departments.Add(department);
             }
             else
             {
                 foreach (var option in selectBox.Descendants("option"))
-                    Departments.Add(new Department(option.GetAttributeValue("value", null)));
+                {
+                    string idStr = option.GetAttributeValue("value", null);
+                    if (idStr == null)
+                    {
+                        Department dep = new Department(new Exception("GetDepartments: no ID was found for element"));
+                        Departments.Add(dep);
+                        continue;
+                    }
+                    string name = option.NextSibling.InnerText;
+                    Department department = new Department(idStr, name);
+                    Departments.Add(department);
+                }
             }
         }
 
@@ -240,7 +256,7 @@ namespace ScheduleGrabber
                             ? departmentStr.Remove(Console.WindowWidth - timeStr.Length - 1)
                             : departmentStr;
             Latest.Enqueue(departmentStr + timeStr);
-            if (Latest.Count > 3)
+            if (Latest.Count > 5)
                 Latest.Dequeue();
 
             int i = 0;

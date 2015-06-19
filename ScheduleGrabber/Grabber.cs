@@ -13,6 +13,7 @@ using ScheduleGrabber.Utilities;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Net;
 
 namespace ScheduleGrabber
 {
@@ -37,12 +38,17 @@ namespace ScheduleGrabber
         public static HtmlDocument SchedulePage { get; set; }
         public static ConcurrentBag<Department> Departments { get; set; }
 
+        public static Stopwatch Timer = new Stopwatch();
+        public static Queue<string> Latest = new Queue<string>();
+
         /// <summary>
         /// Run the ScheduleGrabber!
         /// </summary>
         /// <param name="args">CLI arguments</param>
         static void Main(string[] args)
         {
+            Client.Timeout = new TimeSpan(1, 0, 0); // Never quit
+
             Utility.StandardConsole();
             Console.WriteLine();
             Console.WriteLine(@"   ____    __          __     __    _____         __   __          ");
@@ -72,12 +78,14 @@ namespace ScheduleGrabber
                     ShowHelp(options);
                     return;
                 }
-
-                SchedulePage = GetSchedulePage();
-                RequestData = GetRequestData();
-                Departments = GetDepartments(id);
-                GrabSchedules();
-                ToFile(ToJson(Departments), file);
+                Task.Run( async () =>
+                { 
+                    SchedulePage = GetSchedulePage();
+                    RequestData = GetRequestData();
+                    Departments = GetDepartments(id);
+                    await GrabSchedules();
+                    ToFile(ToJson(Departments), file);
+                }).Wait();
             }
             catch (OptionException e)
             {
@@ -201,18 +209,42 @@ namespace ScheduleGrabber
         /// <summary>
         /// Grab schedules for a list of departments
         /// </summary>
-        public static void GrabSchedules()
+        public static async Task GrabSchedules()
         {
-            Stopwatch timer = new Stopwatch();
-            timer.Start();
+            Timer.Start();
             int counter = 0;
-            Parallel.ForEach(Departments, new ParallelOptions { MaxDegreeOfParallelism = 4 }, department =>
+            
+            var tasks = Departments.Select(dep => dep.GrabSchedule(RequestData)
+                .ContinueWith(async time => UpdateConsole(ref counter, dep, await time))).ToArray();
+            await Task.WhenAll(tasks);
+            Timer.Stop();
+        }
+
+        /// <summary>
+        /// Update the current status of ScheduleGrabber,
+        /// Inform the user!
+        /// </summary>
+        /// <param name="counter">Departments iteration counter</param>
+        /// <param name="dep">the department that was just finished</param>
+        /// <param name="time">how long it took to finish that department in milliseconds</param>
+        public static void UpdateConsole(ref int counter, Department dep, long time)
+        {
+            Interlocked.Increment(ref counter);
+            Utility.DrawTextProgressBar(counter, Departments.Count, ref Timer);
+            Console.SetCursorPosition(0, 8);
+            Latest.Enqueue(dep.Name);
+            if (Latest.Count > 3)
+                Latest.Dequeue();
+
+            int i = 0;
+            foreach (string department in Latest)
             {
-                department.GrabSchedule(RequestData);
-                Interlocked.Increment(ref counter);
-                Utility.DrawTextProgressBar(counter, Departments.Count, ref timer);
-            });
-            timer.Stop();
+                Utility.ClearCurrentConsoleLine();
+                Console.WriteLine("\r" + ((department.Length >= Console.WindowWidth) 
+                                            ? department.Remove(Console.WindowWidth) 
+                                            : department) + " (" + time + " ms)");
+                i++;
+            }
         }
 
         /// <summary>

@@ -3,6 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ScheduleGrabber.Utilities;
+using System.Threading.Tasks;
+using System.Net.Http;
+using System.Diagnostics;
 
 namespace ScheduleGrabber.Objects
 {
@@ -33,11 +36,22 @@ namespace ScheduleGrabber.Objects
         ///     the request data from the HttpClient
         ///     required for posting to the website.
         /// </param>
-        public void GrabSchedule(PostData requestData)
+        public async Task<long> GrabSchedule(PostData requestData)
         {
+            Stopwatch timer = new Stopwatch();
+            timer.Start();
             var urlEncoded = requestData.UrlEncode(this);
-            var response = Grabber.Client.PostAsync(Grabber.URL, urlEncoded).Result;
-            string htmlStr = response.Content.ReadAsStringAsync().Result;
+            HttpResponseMessage response;
+            string htmlStr = "";
+            try
+            {
+                response = await Grabber.Client.PostAsync(Grabber.URL, urlEncoded);
+                htmlStr = await response.Content.ReadAsStringAsync();
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
             HtmlDocument scheduleHtml = Utility.ToHtml(htmlStr);
             if (scheduleHtml == null || scheduleHtml.DocumentNode == null)
                 throw new ArgumentException("GrabSchedule + " + this.Id +
@@ -49,7 +63,7 @@ namespace ScheduleGrabber.Objects
             this.Name = Utility.Sanitize(title.InnerText);
 
             if (weeks.Count() == 0)
-                return;
+                return timer.ElapsedMilliseconds;
 
             foreach (var week in weeks)
             {
@@ -91,6 +105,7 @@ namespace ScheduleGrabber.Objects
                     this.Schedule.Add(theWeek);
                 }
             }
+            return timer.ElapsedMilliseconds;
         }
 
 

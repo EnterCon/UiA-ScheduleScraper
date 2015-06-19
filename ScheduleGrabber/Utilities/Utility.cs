@@ -120,30 +120,22 @@ namespace ScheduleGrabber.Utilities
         /// <param name="total">The amount it counts</param>
         public static void DrawTextProgressBar(int progress, int total, ref Stopwatch timer)
         {
-            //draw empty progress bar
-            Console.CursorLeft = 0;
-            Console.Write("["); //start
-            Console.CursorLeft = 32;
-            Console.Write("]"); //end
-            Console.CursorLeft = 1;
+            StringBuilder progressBar = new StringBuilder();
+            progressBar.Append('[');
             float onechunk = 30.0f / total;
-
-            //draw filled part
-            int position = 1;
+            int where = 0;
             for (int i = 0; i < onechunk * progress; i++)
             {
-                Console.CursorLeft = position++;
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.Write("=");
+                progressBar.Append('=');
+                where++;
             }
 
             //draw unfilled part
-            for (int i = position; i <= 31; i++)
+            for (int i = where; i <= 31; i++)
             {
-                Console.CursorLeft = position++;
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.Write(" ");
+                progressBar.Append(' ');
             }
+            progressBar.Append(']');
 
             string str = "";
             if(progress != 0) // Avoid infinity
@@ -154,17 +146,28 @@ namespace ScheduleGrabber.Utilities
                 str = time.ToString(@"mm\:ss");
             }
 
-            if (progress < 0 || progress >= total)
+            if (progress < 0 || progress > total)
             {
                 throw new InvalidOperationException("DrawProgressBar: Index out of range");
             }
-            int percent = (100 * (progress + 1)) / total;
+            int percent = 100 * progress / total;
 
-            //draw totals
-            Console.CursorLeft = 35;
-            Console.BackgroundColor = ConsoleColor.Black;
-            Console.Write(progress.ToString() + " of " + total.ToString() +
+            progressBar.Append(progress.ToString() + " of " + total.ToString() +
                 " (" + percent + "% done) (" + str + " left) ");
+            Console.SetCursorPosition(0, 15);
+            Console.Write("\r" + progressBar.ToString());
+        }
+
+        /// <summary>
+        /// Clear the current line
+        /// From: http://stackoverflow.com/a/8946847
+        /// </summary>
+        public static void ClearCurrentConsoleLine()
+        {
+            int currentLineCursor = Console.CursorTop;
+            Console.SetCursorPosition(0, Console.CursorTop);
+            Console.Write(new string(' ', Console.WindowWidth * 2));
+            Console.SetCursorPosition(0, currentLineCursor);
         }
     }
 }

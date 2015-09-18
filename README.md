@@ -1,4 +1,4 @@
-# UiA-ScheduleGrabber <image src="https://ci.appveyor.com/api/projects/status/087lgi4ryvgbx5x1?svg=true&passingText=master%20-%20OK">
+# UiA-ScheduleScraper <image src="https://ci.appveyor.com/api/projects/status/087lgi4ryvgbx5x1?svg=true&passingText=master%20-%20OK">
 
 Application for parsing the UiA schedule information for all departments.
 It's a simple application which produces JSON from
@@ -42,4 +42,4 @@ I am considering the following features in the future:
 
 
 # License
-MIT, see [license](https://github.com/martinothamar/UiA-ScheduleGrabber/blob/master/LICENSE).
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" property="dct:title">UiA-ScheduleScraper</span> by <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.entercon.no" property="cc:attributionName" rel="cc:attributionURL">EnterCon DA</a> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.<br />.
